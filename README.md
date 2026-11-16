@@ -1,5 +1,7 @@
 # NeuroEntrepreneur AI Coach
 
+[English overview](README.en.md)
+
 **Coach conversationnel qui aide un porteur de projet à passer d'une idée floue à un plan de micro-tâches, puis à suivre sa progression réelle. Le modèle de langage propose, le code vérifie, et rien n'est enregistré sans un clic de l'utilisateur.**
 
 > **Prototype indépendant de portfolio.** Ce projet n'est **pas affilié officiellement à Fantas.IA** et n'est pas son produit. Il s'inspire de besoins exprimés publiquement, sans connaissance de son cahier des charges interne.
