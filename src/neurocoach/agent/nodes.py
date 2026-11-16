@@ -1336,11 +1336,11 @@ class CoachNodes:
         text = _last_human_text(state.get("messages", []))
         greeting = SOCIAL_GREETING.fullmatch(text.strip())
         if greeting and any(char.isalpha() for char in text):
-            reply = (
-                "Ça va bien, merci ! Et vous ?"
-                if greeting["check_in"].strip()
-                else "Bonjour ! Comment allez-vous ?"
-            )
+            try:
+                response = self._coaching_reply(text, {}, "salutation")
+            except DomainError as exc:
+                return {"error": _error(exc)}
+            reply = "\n\n".join(filter(None, (response.reply, response.question)))
             return {"messages": [AIMessage(content=reply)], "last_result": {"kind": "coach_done"}}
         previous = ProjectBrief(**(state.get("brief_draft") or {}))
         known = self._known(state)
@@ -1537,6 +1537,35 @@ class CoachNodes:
         direct_next_action = commercial_test or scope_adjustment
         if direct_next_action:
             response_goal = "repondre"
+        topics = self._discovery_topics(merged, known, topics_asked)
+        zero_budget = (
+            known.budget_eur == 0
+            or known.budget_mad == 0
+            or bool(
+                re.search(
+                    r"\b(?:aucun budget|budget nul|sans budget|zéro budget)\b",
+                    merged.budget or "",
+                    re.I,
+                )
+            )
+        )
+        discovery_topic = None
+        if (
+            discovery["idee_retenue"]
+            and not direct_next_action
+            and not turn.plan_requested
+            and not assessment.research_requested
+            and not assessment.solo_test_requested
+            and response_goal in ("clarifier", "repondre", "recommander")
+        ):
+            if not practice and "experience" in topics:
+                discovery_topic = "experience"
+            elif "budget" in topics and not zero_budget:
+                discovery_topic = "budget"
+            elif zero_budget:
+                response_goal = "recommander"
+            if discovery_topic:
+                response_goal = "clarifier"
         reply_facts.update(
             current,
             decouverte=discovery,
@@ -1550,12 +1579,14 @@ class CoachNodes:
             essai_autonome=assessment.solo_test_requested,
             essai_commercial=commercial_test,
             ajustement_perimetre=scope_adjustment,
+            decouverte_projet=discovery_topic,
+            budget_zero=zero_budget,
         )
-        topics = self._discovery_topics(merged, known, topics_asked)
         topic = assessment.discovery_topic if assessment.discovery_topic in topics else None
         if not practice and "competence" in topics:
             topic = "competence"
         topic = topic or next(iter(topics), None)
+        topic = discovery_topic or topic
         if response_goal == "clarifier":
             reply_facts["sujet_de_la_question"] = topics.get(topic)
             if topic is None:
@@ -1606,11 +1637,7 @@ class CoachNodes:
                         )
                         decision["offer_status"] = offer_status
                     elif response.recommends_offer and not direct_next_action:
-                        response = CoachResponse(
-                            question=response.question
-                            if response_goal == "clarifier"
-                            else ("Quelle tâche savez-vous déjà réaliser ?")
-                        )
+                        response = self._coaching_reply(text, reply_facts, "exercice")
             except DomainError as exc:
                 return {"error": _error(exc)}
             turn = turn.model_copy(update=response.model_dump(exclude={"recommends_offer"}))
@@ -1620,17 +1647,6 @@ class CoachNodes:
                 or (response_goal == "clarifier" and not topic)
             ):
                 turn = turn.model_copy(update={"question": ""})
-            elif response_goal == "clarifier" and topic == "temps" and turn.question:
-                turn = turn.model_copy(
-                    update={"question": "Combien de temps pouvez-vous y consacrer par semaine ?"}
-                )
-            if (
-                response_goal == "clarifier"
-                and len(user_messages) == 1
-                and not practice
-                and not re.match(r"(?:bonjour|bonsoir|salut|coucou|hello)\b", text, re.I)
-            ):
-                turn = turn.model_copy(update={"reply": ""})
             if repeated_question(turn.question, state.get("questions_asked") or []):
                 turn = turn.model_copy(update={"question": ""})
                 contract.append("question_repetee_retiree")
@@ -1647,16 +1663,11 @@ class CoachNodes:
                 verified_offer=decision.get("offer_status") == "verified",
             )
             contract.extend(text_contract)
-            if not reply and "question_repetee_retiree" in contract:
-                reply = (
-                    "Partons d'une tâche que vous faites déjà. Vous pouvez me raconter "
-                    "un exemple tiré du quotidien, même si vous ne l'avez jamais vendu."
-                )
-            if not reply and response_goal == "clarifier":
-                reply = (
-                    "Partons d'un exemple de votre quotidien. Même une petite tâche "
-                    "que vous faites régulièrement peut nous donner une piste."
-                )
+            if not reply:
+                try:
+                    reply = self._coaching_reply(text, reply_facts, "exercice").reply
+                except DomainError as exc:
+                    return {"error": _error(exc)}
             if not reply:
                 return {"error": _error(DomainError(ErrorCode.LLM_OUTPUT_INVALID))}
             update["messages"] = [AIMessage(content=reply)]
@@ -1708,7 +1719,7 @@ class CoachNodes:
             "competence": (brief.skills, "une chose concrète qu'elle sait déjà faire"),
             "experience": (
                 brief.past_attempts,
-                "une situation concrète dans laquelle elle a aidé quelqu'un",
+                "si elle a déjà démarré cette activité ou si c'est sa première fois",
             ),
             "objectif": (brief.target_outcome, "le premier résultat qu'elle souhaite"),
             "temps": (
@@ -1735,23 +1746,34 @@ class CoachNodes:
             "offre_precedente": facts.get("derniere_offre_verifiee"),
             "pratique_concrete_confirmee": concrete_practice,
             "essai_autonome": facts.get("essai_autonome", False),
+            "budget_zero": facts.get("budget_zero", False),
             "pratiques_citees": facts.get("pratiques_citees", []),
         }
-        if not concrete_practice or not facts.get("pratiques_citees"):
-            return CoachResponse(reply=self._independent_exercise()), "exercise"
-        # Une seule proposition et au plus une vérification. Un refus de validation
-        # ramène à un exercice autonome au lieu de régénérer l'offre en boucle.
+        if facts.get("budget_zero") or not concrete_practice or not facts.get("pratiques_citees"):
+            return self._coaching_reply(text, offer_facts, "exercice"), "exercise"
         return self._offer_or_exercise(text, sources, offer_facts)
+
+    def _coaching_reply(self, text: str, facts: dict[str, Any], mode: str) -> CoachResponse:
+        response = self.llm.generate_structured(
+            "coach_response",
+            build_messages("coach_response", text=text, facts={**facts, "mode_coaching": mode}),
+            CoachResponse,
+        )
+        if not response.reply.strip() or response.recommends_offer:
+            raise DomainError(ErrorCode.LLM_OUTPUT_INVALID)
+        return response.model_copy(update={"question": ""}) if mode == "exercice" else response
 
     def _offer_or_exercise(
         self, text: str, sources: dict[int, str], offer_facts: dict[str, Any]
     ) -> tuple[CoachResponse, str]:
+        exercise = None
         try:
             proposal = self.llm.generate_structured(
                 "coach_offer",
                 build_messages("coach_offer", text=text, facts=offer_facts),
                 OfferProposal,
             )
+            exercise = self._grounded_exercise(proposal, sources)
             unsupported = [
                 req.capability
                 for req in proposal.requirements
@@ -1819,61 +1841,23 @@ class CoachNodes:
         except DomainError as exc:
             if exc.code not in (ErrorCode.LLM_OUTPUT_INVALID, ErrorCode.LLM_UNAVAILABLE):
                 raise
-            return CoachResponse(
-                reply=self._independent_exercise(practices=offer_facts["pratiques_citees"])
-            ), "exercise"
-        return CoachResponse(
-            reply=self._independent_exercise(proposal, sources, offer_facts["pratiques_citees"])
+        return self._coaching_reply(
+            text, {**offer_facts, "exercice_verifie": exercise}, "exercice"
         ), "exercise"
 
     @staticmethod
-    def _independent_exercise(
-        proposal: OfferProposal | None = None,
-        sources: dict[int, str] | None = None,
-        practices: list[str] | None = None,
-    ) -> str:
-        if proposal and proposal.solo_exercise in ("simulate", "prepare"):
-            subject = proposal.exercise_subject.strip().rstrip(".")
-            output = proposal.exercise_output.strip().rstrip(".")
-            if all(re.fullmatch(r"[^\n!?]{3,130}", value) for value in (subject, output)):
-                if proposal.solo_exercise == "simulate":
-                    requirement = proposal.exercise_requirement
-                    action = proposal.exercise_action.strip().rstrip(".")
-                    if (
-                        requirement
-                        and sources
-                        and _quote_key(requirement.evidence)
-                        and (
-                            _quote_key(requirement.evidence)
-                            in _quote_key(sources.get(requirement.user_message, ""))
-                        )
-                        and re.fullmatch(r"[^\n!?]{6,200}", action)
-                    ):
-                        return (
-                            f"Prenez ce cas fictif : {subject}. {action}. "
-                            f"À la fin, gardez {output[:1].lower() + output[1:]}."
-                        )
-                else:
-                    return (
-                        f"Voici un cas fictif à travailler chez vous. {subject}. "
-                        "Dans votre brouillon, décrivez uniquement ce que vous savez déjà faire. "
-                        f"À garder à la fin : {output[:1].lower() + output[1:]}."
-                    )
-        if practices:
-            practice = practices[0].strip().rstrip(".")
-            if re.fullmatch(r"[^\n!?]{6,145}", practice):
-                return (
-                    f"Partez de ce geste : « {practice} ». "
-                    "Refaites-le une fois pour vous, avec ce que vous avez déjà et sans "
-                    "données de tiers. Notez le résultat obtenu et ce qu'il faudrait "
-                    "avoir sous la main pour refaire le même geste pour quelqu'un d'autre."
-                )
-        return (
-            "Ce soir, choisissez une petite tâche que vous faites déjà au travail ou chez "
-            "vous. Notez en trois lignes ce qui vous a été demandé, ce que vous avez fait "
-            "et le résultat. Sans noms ni données privées. Ce sera votre point de départ "
-            "pour choisir un service simple à tester."
-        )
+    def _grounded_exercise(proposal: OfferProposal, sources: dict[int, str]) -> dict | None:
+        requirement = proposal.exercise_requirement
+        if proposal.solo_exercise != "simulate" or not requirement:
+            return None
+        quote = _quote_key(requirement.evidence)
+        if not quote or quote not in _quote_key(sources.get(requirement.user_message, "")):
+            return None
+        return {
+            "cas_fictif": proposal.exercise_subject,
+            "action": proposal.exercise_action,
+            "resultat": proposal.exercise_output,
+        }
 
     @staticmethod
     def _turn_text(
@@ -2154,15 +2138,23 @@ class CoachNodes:
             except DomainError as exc:
                 return {"error": _error(exc)}
             if co.plan_capacity_errors(draft, session=session, weekly=weekly):
-                return {
-                    "last_result": {
-                        "kind": "text",
-                        "text": (
-                            "La proposition dépasse encore votre temps disponible. "
-                            "Quelle partie du projet souhaitez-vous prioriser ?"
-                        ),
-                    }
-                }
+                try:
+                    response = self._coaching_reply(
+                        request,
+                        {
+                            "sujet": facts.get("sujet"),
+                            "minutes_par_seance": session,
+                            "minutes_par_semaine": weekly,
+                            "problemes_du_brouillon": co.plan_capacity_errors(
+                                draft, session=session, weekly=weekly
+                            ),
+                        },
+                        "plan_invalide",
+                    )
+                except DomainError as exc:
+                    return {"error": _error(exc)}
+                reply = "\n\n".join(filter(None, (response.reply, response.question)))
+                return {"last_result": {"kind": "text", "text": reply}}
         draft = fit_plan(draft, None)
         if known.no_deadlines:
             # « Je ne veux pas de dates limites » : aucune echeance, meme si les preferences

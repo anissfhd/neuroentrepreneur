@@ -7,7 +7,7 @@
 > **Prototype indépendant de portfolio.** Ce projet n'est **pas affilié officiellement à Fantas.IA** et n'est pas son produit. Il s'inspire de besoins exprimés publiquement, sans connaissance de son cahier des charges interne.
 > Ce n'est **pas un dispositif médical** : aucun diagnostic, aucun avis médical, juridique ou financier.
 > Ce n'est **pas un logiciel prêt pour la production** : usage local, utilisateurs fictifs, sans authentification (voir [Limites](#limites)).
-> **Le comportement avec un vrai modèle de langage n'est validé que pour OpenAI `gpt-5-mini`** (quatre campagnes et des validations ciblées, effort `low`, validation finale 15/15) : garanties de sécurité tenues ; limites documentées. La démonstration et la suite de tests utilisent un faux fournisseur déterministe.
+> **Modèles testés via l'API OpenAI.** GPT-5 mini a servi aux campagnes documentées. GPT-6.1 Sol a été vérifié sur le parcours de découverte de la démo : expérience, budget et première action adaptée en cas de budget nul. Les tests automatisés utilisent aussi un fournisseur simulé.
 
 ![Tableau de bord de NeuroEntrepreneur](docs/screenshots/accueil.png)
 

@@ -103,7 +103,13 @@ def build_coach_runtime(
         # D-83 : plafond de depense de session, seulement s'il est demande au lancement.
         from neurocoach.agent.spending import capped
 
-        llm = capped(llm)
+        llm = capped(
+            llm,
+            models=tuple(a.model for a in loaded.assignments.values() if a.provider != "fake"),
+            output_tokens=max(
+                settings.llm_max_output_tokens, settings.llm_max_output_tokens_analysis
+            ),
+        )
     checkpointer = open_checkpointer(settings.checkpoint_db_path)
     app = build_application(
         settings, clock=clock, conversations=SqliteConversationStore(checkpointer)

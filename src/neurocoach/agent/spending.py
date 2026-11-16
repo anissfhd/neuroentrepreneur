@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from neurocoach.domain.errors import DomainError, ErrorCode
+from neurocoach.llm_catalog import default_catalog
 
 # Tarifs publics de gpt-5-mini (USD par jeton) : entree, sortie. Le cache d'entree n'est pas
 # deduit : le cout compte est un majorant.
@@ -28,10 +29,20 @@ WORST_OUTPUT_TOKENS = 8000  # plafond de sortie le plus haut configure (analyses
 
 
 class SpendingCap:
-    def __init__(self, inner: Any, limit_usd: float, ledger: Path) -> None:
+    def __init__(
+        self,
+        inner: Any,
+        limit_usd: float,
+        ledger: Path,
+        *,
+        rates: tuple[float, float] | None = None,
+        output_tokens: int = WORST_OUTPUT_TOKENS,
+    ) -> None:
         self.inner, self.limit, self.ledger = inner, limit_usd, ledger
         self.lock = threading.Lock()
         self.reserved = 0.0
+        self.input_rate, self.output_rate = rates or (PRICE_INPUT, PRICE_OUTPUT)
+        self.output_tokens = output_tokens
         ledger.parent.mkdir(parents=True, exist_ok=True)
 
     def __getattr__(self, name: str) -> Any:  # autres attributs du fournisseur
@@ -46,10 +57,9 @@ class SpendingCap:
                 total += float(json.loads(line).get("cost_usd", 0.0))
         return total
 
-    @staticmethod
-    def _worst(messages: list[dict[str, str]]) -> float:
+    def _worst(self, messages: list[dict[str, str]]) -> float:
         chars = sum(len(m["content"]) for m in messages)
-        return (chars / 2.5) * PRICE_INPUT + WORST_OUTPUT_TOKENS * PRICE_OUTPUT
+        return chars * self.input_rate + self.output_tokens * self.output_rate
 
     def _call(
         self,
@@ -75,7 +85,7 @@ class SpendingCap:
             tokens_in = sum(u.get("input_tokens", 0) for u in usage.usage_metadata.values())
             tokens_out = sum(u.get("output_tokens", 0) for u in usage.usage_metadata.values())
             if tokens_in or tokens_out:
-                cost = tokens_in * PRICE_INPUT + tokens_out * PRICE_OUTPUT
+                cost = tokens_in * self.input_rate + tokens_out * self.output_rate
             entry.update(models=list(usage.usage_metadata), input_tokens=tokens_in,
                          output_tokens=tokens_out)  # fmt: skip
             return result
@@ -134,11 +144,24 @@ class SpendingCap:
         return self._call(task, messages, lambda: stream(task, messages, schema, timed), first)
 
 
-def capped(llm: Any, environ: dict[str, str] | None = None) -> Any:
+def capped(
+    llm: Any,
+    environ: dict[str, str] | None = None,
+    *,
+    models: tuple[str, ...] = (),
+    output_tokens: int = WORST_OUTPUT_TOKENS,
+) -> Any:
     """Enveloppe le fournisseur si un plafond est defini pour ce processus."""
     env = os.environ if environ is None else environ
     raw = env.get("NEUROCOACH_SPENDING_CAP_USD")
     if not raw:
         return llm
     ledger = Path(env.get("NEUROCOACH_SPENDING_LEDGER") or "data/evaluations/depenses.jsonl")
-    return SpendingCap(llm, float(raw), ledger)
+    rates = []
+    for model in set(models):
+        spec = default_catalog().get(model)
+        if spec is None or spec.price_input is None or spec.price_output is None:
+            raise ValueError(f"Tarif manquant pour le modèle {model} soumis au plafond API.")
+        rates.append((spec.price_input / 1e6, spec.price_output / 1e6))
+    ceiling = (max(r[0] for r in rates), max(r[1] for r in rates)) if rates else None
+    return SpendingCap(llm, float(raw), ledger, rates=ceiling, output_tokens=output_tokens)

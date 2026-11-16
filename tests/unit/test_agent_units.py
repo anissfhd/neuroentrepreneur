@@ -68,12 +68,13 @@ def test_autonomous_exercise_requires_evidence_for_the_action():
             "evidence": "je modifie les prix de menus dans Canva",
         },
     )
-    assert "Modifiez les trois prix" not in CoachNodes._independent_exercise(
+    assert CoachNodes._grounded_exercise(
         proposal, {1: "Je travaille dans un restaurant."}
-    )
-    assert "Modifiez les trois prix" in CoachNodes._independent_exercise(
+    ) is None
+    exercise = CoachNodes._grounded_exercise(
         proposal, {1: "Au restaurant, je modifie les prix de menus dans Canva."}
     )
+    assert exercise and exercise["action"] == "Modifiez les trois prix"
 
 
 # --- routage --------------------------------------------------------------------------

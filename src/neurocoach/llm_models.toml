@@ -80,3 +80,19 @@ sources = [
     "https://developers.openai.com/api/docs/deprecations",
 ]
 notes = ""
+
+[[models]]
+id = "gpt-6.1-sol"
+provider = "openai"
+status = "available"
+snapshots = []
+efforts = ["low", "medium", "high", "xhigh", "max"]
+apis = ["chat_completions", "responses", "batch"]
+structured_outputs = true
+context_window = 1050000
+max_output_tokens = 128000
+price_input = 2.0
+price_cached_input = 0.1
+price_output = 10.0
+verified_on = 2026-11-16
+sources = ["https://developers.openai.com/api/docs/models"]

@@ -19,6 +19,18 @@ def test_no_cap_unless_asked():
     assert capped(llm, {}) is llm
 
 
+def test_sol_is_reserved_at_its_own_rate(tmp_path):
+    ledger = tmp_path / "depenses.jsonl"
+    cap = capped(
+        FakeLLM(),
+        {"NEUROCOACH_SPENDING_CAP_USD": "0.07", "NEUROCOACH_SPENDING_LEDGER": str(ledger)},
+        models=("gpt-6.1-sol",),
+    )
+    with pytest.raises(DomainError):
+        cap.generate_structured("classify_intent", MESSAGES, IntentResult)
+    assert not ledger.exists()
+
+
 def test_calls_are_recorded_and_refused_before_exceeding_the_cap(tmp_path):
     ledger = tmp_path / "depenses.jsonl"
     cap = capped(FakeLLM(), {"NEUROCOACH_SPENDING_CAP_USD": "0.04",

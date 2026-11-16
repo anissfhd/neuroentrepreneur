@@ -183,6 +183,10 @@ def extract_known(texts: Iterable[str], *, asked_schedule: bool = False) -> Know
             values["budget_mad"] = _number(match.group(1) or match.group(2))
             values.pop("budget_eur", None)
             sources["budget"] = match.group(0)
+        elif match := re.search(r"\b(?:aucun budget|sans budget|budget nul|zero budget)\b", text):
+            values["budget_eur"] = 0
+            values.pop("budget_mad", None)
+            sources["budget"] = match.group(0)
         weekly = _WEEKLY.search(text)
         daily = _DAILY_MIN.search(text) or _DAILY_HOURS.search(text)
         if weekly:

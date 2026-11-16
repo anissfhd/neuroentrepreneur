@@ -82,7 +82,7 @@ def _entry(id="m", status="available", extra="", verified="2026-11-10"):
 
 def test_the_shipped_catalog_is_valid_and_matches_the_official_checks():
     catalog = load_catalog()
-    assert catalog.ids() == ["gpt-5-mini", "gpt-5.6-terra", "gpt-5.6-luna"]
+    assert catalog.ids() == ["gpt-5-mini", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-6.1-sol"]
     mini = catalog.get("gpt-5-mini")
     assert mini.status == "deprecated"
     assert mini.retirement_date == date(2026, 12, 11)
@@ -99,7 +99,7 @@ def test_the_shipped_catalog_is_valid_and_matches_the_official_checks():
     assert catalog.get("gpt-5.6-terra").price_output == 12.0
     assert catalog.get("gpt-5.6-luna").price_output == 1.2
     for spec in catalog.models:
-        assert spec.verified_on == TODAY
+        assert spec.verified_on >= TODAY
         assert all(url.startswith("https://developers.openai.com/") for url in spec.sources)
 
 
@@ -212,7 +212,7 @@ def test_an_unknown_role_model_is_an_error_listing_the_declared_models(tmp_path)
     errors = _messages(validate_roles(settings, today=TODAY), "erreur")
     assert errors == [
         "Modèle inconnu pour le rôle coaching entrepreneurial : gpt-5-minii. Modèles déclarés : "
-        "gpt-5-mini, gpt-5.6-terra, gpt-5.6-luna (src/neurocoach/llm_models.toml)."
+        "gpt-5-mini, gpt-5.6-terra, gpt-5.6-luna, gpt-6.1-sol (src/neurocoach/llm_models.toml)."
     ]
     with pytest.raises(ConfigurationError, match="gpt-5-minii"):
         raise_on_errors(validate_roles(settings, today=TODAY))

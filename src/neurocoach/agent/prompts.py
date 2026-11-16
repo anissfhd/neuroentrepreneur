@@ -64,8 +64,9 @@ _TASKS: dict[str, str] = {
         "de ses essais passés. Dans la description de chaque tâche : comment la réaliser, les "
         "ressources et le coût dans son budget (estimés, signalés comme tels). Aucun chiffre "
         "inventé (volume, durée exacte, résultat garanti) : une estimation est dite comme une "
-        "hypothèse. Chaque tâche se fait en une seule séance : son estimation en minutes "
-        "ne dépasse pas available_minutes_per_day. Chaque tâche a un critère de fin "
+        "hypothèse. Renseigne estimate_minutes pour chaque tâche, même si le temps disponible "
+        "est inconnu : cette estimation décrit le travail, pas les disponibilités. Respecte "
+        "available_minutes_per_day quand il est connu. Chaque tâche a un critère de fin "
         "vérifiable et une clé courte en minuscules. Les dépendances utilisent les clés. "
         "N'ajoute des échéances (due_in_days) que si les échéances sont activées et que "
         "l'utilisateur ne les a pas refusées ; un objectif (« premières ventes dans trois "
@@ -601,6 +602,39 @@ def build_messages(task: str, *, text: str, facts: dict[str, Any]) -> list[Messa
             "Une seule règle, en deux phrases. Conserve strictement le geste déjà pratiqué. "
             "Ne propose aucune alternative, aucun diagnostic, aucun geste, outil ou achat "
             "supplémentaire. Ne pose aucune question."
+        )
+    mode = facts.get("mode_coaching") if task == "coach_response" else None
+    if task == "coach_response" and facts.get("decouverte_projet"):
+        goal = (
+            "Pose une seule question naturelle sur sujet_de_la_question, en reprenant l'activité "
+            "nommée si utile. Pour experience, demande si la personne a déjà démarré ou si "
+            "c'est sa première fois. Pour budget, demande combien elle souhaite investir au "
+            "départ. Laisse reply vide ou fais un bref accusé de réception. Aucun exercice, "
+            "aucun conseil ni aucune deuxième question à ce stade."
+        )
+    if mode == "salutation":
+        goal = "Réponds brièvement et naturellement à la salutation. N'aborde pas encore le projet."
+    elif mode == "exercice":
+        goal = (
+            "Rédige un seul premier exercice précis et faisable, lié à l'idée ou à la pratique "
+            "confirmée si disponible. Donne une action et un résultat à garder. Sans compétence "
+            "confirmée, limite-toi à l'observation ou à la préparation sans engagement. Respecte "
+            "les contraintes, sans supposer d'outil, de budget, de client ni de savoir-faire. "
+            "Utilise exercice_verifie comme point de départ s'il est présent et pertinent. "
+            "Aucune offre commerciale, aucune promesse et aucune question."
+        )
+        if facts.get("budget_zero"):
+            goal += (
+                " Le budget de départ est nul. Choisis une idée de test à zéro dépense pour "
+                "l'activité demandée, avec une démarche concrète pour mesurer la demande. "
+                "Évite tout achat de stock, abonnement, paiement, dépôt ou vente garantie."
+            )
+    elif mode == "plan_invalide":
+        goal = (
+            "Le brouillon n'a pas été validé et aucune tâche n'a été enregistrée. Explique "
+            "brièvement la difficulté à partir de problemes_du_brouillon. Si la disponibilité "
+            "est inconnue, n'affirme jamais qu'elle a été dépassée. Donne une prochaine étape "
+            "utile. Ne prétends pas qu'un plan est prêt."
         )
     system = " ".join(part for part in (_TASKS[task], goal, DATA_RULES, LIMITS, length) if part)
     return [

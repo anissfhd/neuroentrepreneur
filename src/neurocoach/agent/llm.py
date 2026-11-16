@@ -571,7 +571,16 @@ class FakeLLM:
     def generate_structured(self, task: str, messages: list[Message], schema: type[M]) -> M:
         self.calls.append((task, messages))
         record_call(task, time.monotonic())
-        if task == "coach_turn":
+        if task == "coach_response" and _unpack(messages)[0].get("mode_coaching") == "salutation":
+            _, text = _unpack(messages)
+            item = {
+                "reply": (
+                    "Bonjour ! Comment allez-vous ?"
+                    if text.casefold() == "bonjour"
+                    else "Ça va bien, merci ! Et vous ?"
+                )
+            }
+        elif task == "coach_turn":
             facts, text = _unpack(messages)
             item = self._coach_turn(facts, text)
         elif task == "coach_assessment":
