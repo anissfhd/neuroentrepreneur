@@ -9,7 +9,7 @@
 > Ce n'est **pas un logiciel prêt pour la production** : usage local, utilisateurs fictifs, sans authentification (voir [Limites](#limites)).
 > **Le comportement avec un vrai modèle de langage n'est validé que pour OpenAI `gpt-5-mini`** (quatre campagnes et des validations ciblées, effort `low`, validation finale 15/15) : garanties de sécurité tenues ; limites documentées. La démonstration et la suite de tests utilisent un faux fournisseur déterministe.
 
-![Plan proposé en attente de confirmation](docs/screenshots/03_plan_propose.png)
+![Tableau de bord de NeuroEntrepreneur](docs/screenshots/accueil.png)
 
 ## Sommaire
 - [Le problème](#le-problème)
@@ -60,13 +60,13 @@ L'expérience s'adapte à des **préférences choisies par l'utilisateur** (long
 
 ## Captures
 
-Captures réelles de l'interface, prises par un navigateur sans fenêtre sur des **données fictives**, avec le **faux fournisseur LLM** (`scripts/capture_screenshots.py`). Détail dans [docs/screenshots/](docs/screenshots/README.md).
+Captures de la version du 16 novembre 2026, prises dans Chrome avec un profil et des projets fictifs. [Détails sur les captures](docs/screenshots/README.md).
 
-| | |
-|---|---|
-| ![Accueil et reprise](docs/screenshots/01_accueil_reprise.png) **Accueil :** résumé factuel du projet et progression | ![Clarification](docs/screenshots/02_conversation_clarification.png) **Clarification :** une seule question |
-| ![Plan confirmé](docs/screenshots/04_plan_confirme.png) **Confirmation :** le plan n'est enregistré qu'après le clic | ![Tâches](docs/screenshots/05_taches_et_blocage.png) **Tâches :** statuts, blocage avec raison, dépendances |
-| ![Progression](docs/screenshots/06_progression.png) **Progression :** calculée par le code (33,3 %) | ![Replanification](docs/screenshots/07_replanification_proposee.png) **Replanification :** une étape plus petite, proposée sans être appliquée |
+| Conversation avec le coach | Mes projets |
+| --- | --- |
+| ![Conversation et suivi du projet](docs/screenshots/conversation.png) | ![Synthèse et gestion des projets](docs/screenshots/projets.png) |
+
+![Liste des tâches et action conseillée aujourd'hui](docs/screenshots/taches.png)
 
 ## Architecture
 
