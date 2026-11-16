@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neurocoach"
+version = "0.1.0"
+description = "NeuroEntrepreneur AI Coach - prototype portfolio d'accompagnement entrepreneurial conversationnel"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "pydantic>=2.14,<3",
+    "python-dotenv>=1.2,<2",
+    # zoneinfo n'embarque pas de base de fuseaux sous Windows (DECISIONS D-07).
+    "tzdata>=2026.6",
+    # Business Researcher (R2) : appels HTTP a Tavily et Exa (deja present via les extras).
+    "httpx>=0.28,<1",
+]
+
+[project.optional-dependencies]
+# Phase 2 : graphe conversationnel et interface.
+agent = [
+    "langgraph>=1.2,<2",
+    "langgraph-checkpoint-sqlite>=3.1,<4",
+    "langchain-core>=1.7,<2",
+]
+ui = ["streamlit>=1.67,<2"]
+# Fournisseurs LLM reels, facultatifs (DECISIONS D-10).
+anthropic = ["langchain-anthropic>=1.7,<2"]
+openai = ["langchain-openai>=1.7,<2"]
+dev = [
+    "pytest>=9.2,<10",
+    "pytest-cov>=7.1,<8",
+    "ruff>=0.17,<0.18",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+neurocoach = ["infra/migrations/*.sql", "llm_models.toml", "research_providers.toml", "research_domain_policy.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+addopts = "-q --strict-markers --import-mode=importlib"
+markers = [
+    "real_llm: dialogues avec un vrai fournisseur (NEUROCOACH_RUN_REAL_LLM=1 requis)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["neurocoach"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]

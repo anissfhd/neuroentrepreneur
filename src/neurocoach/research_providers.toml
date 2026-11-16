@@ -1,0 +1,67 @@
+# Catalogue des fournisseurs de recherche (Business Researcher, R1 D-68, R2 D-69).
+# Aucun secret ici : les cles sont lues a part (TAVILY_API_KEY, EXA_API_KEY).
+# Tarifs et conditions : pages officielles lues le 10/11/2026, a reverifier chaque mois.
+# monthly_cap_usd : plafond LOCAL par mois civil (UTC), volontairement INFERIEUR a l'offre
+# gratuite ; atteint, le service est suspendu jusqu'au mois suivant. Ne jamais associer de
+# moyen de paiement au compte si l'on veut exclure toute facturation.
+
+version = "2026-11-10"
+
+[providers.fake]
+label = "Recherche simulée (résultats fictifs)"
+status = "available"
+simulated = true
+cost_per_query_usd = 0.008      # cout fictif, aligne sur une recherche Tavily basique
+categories = ["marche", "concurrence", "prix", "avis", "problemes", "solutions", "temoignages"]
+sends = "rien : aucun service externe"
+terms = "aucun service externe"
+
+[providers.tavily]
+label = "Tavily Search"
+status = "available"            # R2 : branche des qu'une cle est fournie
+simulated = false
+cost_per_query_usd = 0.008      # recherche « basic » : 1 credit a 0,008 $
+monthly_cap_usd = 6.40          # 800 credits sur les 1 000 gratuits du mois
+free_tier = "1 000 crédits par mois, sans carte"
+store_excerpts = true           # conditions : integration dans une application autorisee
+verified = "2026-11-10"
+source = "https://docs.tavily.com/documentation/api-credits"
+categories = ["marche", "concurrence", "prix", "avis", "problemes", "solutions", "temoignages"]
+sends = "texte de la requête minimisé et pays"
+hosting = "États-Unis"
+terms = "usage interne, clé non partagée, résultats à vérifier avant diffusion, aucune donnée sensible dans les requêtes (conditions du 04/05/2026)"
+
+[providers.exa]
+label = "Exa Search"
+status = "available"            # R2 : branche des qu'une cle est fournie
+simulated = false
+cost_per_query_usd = 0.004      # recherche « lite », sans contenu des pages
+monthly_cap_usd = 8.00          # sur les 10 $ gratuits du mois
+free_tier = "10 $ par mois, sans carte"
+store_excerpts = false          # conditions §4.2(a) : pas de conservation sans accord ecrit
+verified = "2026-11-10"
+source = "https://exa.ai/pricing"
+categories = ["concurrence", "solutions", "marche"]
+sends = "texte de la requête minimisé et code pays"
+hosting = "États-Unis"
+terms = "références seules conservées (URL, titre, date) : pas de copie du contenu sans accord écrit"
+
+[providers.reddit]
+label = "Reddit (API officielle)"
+status = "disabled"             # R5 (D-72) : acces soumis a l'approbation de Reddit, non obtenue
+simulated = false
+cost_per_query_usd = 0.0
+verified = "2026-11-10"
+source = "https://support.reddithelp.com/hc/en-us/articles/42728983564564-Responsible-Builder-Policy"
+categories = ["avis", "problemes", "temoignages"]
+sends = "texte de la requête minimisé"
+terms = "accès à l'API soumis à l'approbation explicite de Reddit (écrite et sous contrat pour un usage commercial) ; extraction interdite ; conditions officielles à relire avant toute demande"
+
+[providers.forums]
+label = "Forums publics (accès direct)"
+status = "disabled"             # R5 : aucun acces direct ; les forums sont lus via Tavily
+simulated = false
+cost_per_query_usd = 0.0
+categories = ["avis", "problemes", "temoignages"]
+sends = "texte de la requête minimisé"
+terms = "uniquement les sites qui l'autorisent ; aucun contournement d'acces ni anti-robot"

@@ -1,0 +1,136 @@
+<span hidden></span><script>(() => {
+  const window = globalThis.parent;
+  const document = window.document;
+  const { MutationObserver, HTMLTextAreaElement, Event } = window;
+  const installed = Symbol.for("neuroentrepreneur.dictation");
+  const previous = window[installed];
+  previous?.observer.disconnect();
+  if (previous) window.clearInterval(previous.timer);
+
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const selector = '[data-testid="stChatInput"]';
+  let landingPath = previous?.landingPath;
+
+  function animateTitle() {
+    const title = document.querySelector(".ne-chat-landing-title");
+    if (!title) {
+      landingPath = undefined;
+      return;
+    }
+    const path = window.location.search;
+    if (landingPath === path) return;
+    landingPath = path;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !title.animate) return;
+    const text = title.textContent;
+    const visual = document.createElement("span");
+    visual.setAttribute("aria-hidden", "true");
+    title.setAttribute("aria-label", text);
+    let index = 0;
+    for (const [wordIndex, word] of text.split(" ").entries()) {
+      if (wordIndex) visual.append(" ");
+      const segment = document.createElement("span");
+      segment.className = "ne-title-word";
+      for (const character of word) {
+        const letter = document.createElement("span");
+        letter.textContent = character;
+        segment.append(letter);
+        letter.animate([{opacity: 0}, {opacity: 1}], {
+          duration: 1, delay: 45 * index++, fill: "backwards",
+        });
+      }
+      visual.append(segment);
+    }
+    title.replaceChildren(visual);
+  }
+
+  function install() {
+    animateTitle();
+    const composer = [...document.querySelectorAll(selector)].findLast(node => node.getClientRects().length);
+    if (!composer || composer.querySelector(".ne-dictate")) return;
+    const field = composer.querySelector("textarea");
+    const send = composer.querySelector('[data-testid="stChatInputSubmitButton"]');
+    if (!field || !send) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ne-dictate";
+    button.setAttribute("aria-label", "Dicter en français");
+    button.setAttribute("aria-pressed", "false");
+    button.title = "Dicter en français";
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 18v3.5m-3 0h6"/></svg>';
+    const status = document.createElement("span");
+    status.className = "ne-dictation-status";
+    status.setAttribute("role", "status");
+    send.insertAdjacentElement("afterend", button);
+    button.disabled = field.disabled;
+    composer.append(status);
+
+    let recognition;
+    let deadline;
+    function finish() {
+      clearTimeout(deadline);
+      recognition = undefined;
+      button.setAttribute("aria-pressed", "false");
+    }
+    const stopWhenUnavailable = new MutationObserver(() => {
+      button.disabled = field.disabled;
+      if (recognition && (field.disabled || !composer.isConnected)) recognition.abort();
+      if (!composer.isConnected) stopWhenUnavailable.disconnect();
+    });
+    stopWhenUnavailable.observe(field, {attributes: true, attributeFilter: ["disabled"]});
+    stopWhenUnavailable.observe(document.body, {childList: true, subtree: true});
+
+    button.addEventListener("click", () => {
+      if (field.disabled) return;
+      if (!Recognition) {
+        status.textContent = "Dictée indisponible dans ce navigateur.";
+        return;
+      }
+      if (recognition) {
+        recognition.stop();
+        return;
+      }
+      recognition = new Recognition();
+      recognition.lang = "fr-FR";
+      recognition.onstart = () => {
+        button.setAttribute("aria-pressed", "true");
+        status.textContent = "Écoute en cours… Cliquez sur le micro pour arrêter.";
+      };
+      recognition.onresult = event => {
+        const words = event.results[0][0].transcript.trim();
+        if (!composer.isConnected || field.disabled || !words) return;
+        const text = [field.value.trimEnd(), words].filter(Boolean).join(" ");
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(field, text);
+        field.dispatchEvent(new Event("input", {bubbles: true}));
+        field.focus();
+        status.textContent = "Dictée ajoutée au brouillon.";
+      };
+      recognition.onerror = event => {
+        if (event.error !== "aborted") {
+          status.textContent = event.error === "not-allowed"
+            ? "Autorisez le microphone dans votre navigateur."
+            : "La dictée a échoué. Vous pouvez réessayer ou écrire votre message.";
+        }
+      };
+      recognition.onend = () => {
+        if (status.textContent.startsWith("Écoute")) status.textContent = "";
+        finish();
+      };
+      try {
+        status.textContent = "Connexion au service de dictée du navigateur…";
+        recognition.start();
+        deadline = setTimeout(() => recognition?.abort(), 45000);
+      } catch {
+        status.textContent = "Impossible de démarrer la dictée.";
+        finish();
+      }
+    });
+  }
+
+  const observer = new MutationObserver(install);
+  observer.observe(document.body, {childList: true, subtree: true});
+  const timer = window.setInterval(install, 350);
+  window[installed] = {observer, timer, get landingPath() { return landingPath; }};
+  install();
+})();
+</script>

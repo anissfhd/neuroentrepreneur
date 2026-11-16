@@ -1,0 +1,14 @@
+*
+!requirements.lock
+!pyproject.toml
+!README.md
+!LICENSE
+!src/
+!src/**
+!ui/
+!ui/**
+!.streamlit/
+!.streamlit/config.toml
+!deploy/
+!deploy/Dockerfile
+**/__pycache__/

@@ -1,0 +1,82 @@
+# Catalogue des modeles LLM (etape M1, docs/MULTI_MODEL_DESIGN.md). Des donnees, pas du code.
+#
+# Regles de maintenance :
+# - n'ecrire que ce que la documentation officielle confirme (champ `sources`) ;
+# - un champ non confirme est liste dans `unverified` : il n'est jamais utilise pour bloquer ;
+# - `observed_efforts` : niveaux utilises avec succes lors de nos campagnes reelles (preuve
+#   d'usage, distincte de la documentation) ;
+# - mettre a jour `verified_on` a chaque verification ; ajouter un modele = ajouter une entree.
+#
+# Ce catalogue ne choisit aucun modele : le modele actif vient de la configuration (.env).
+
+catalog_version = "2026-11-10"
+
+[[models]]
+id = "gpt-5-mini"
+provider = "openai"
+status = "deprecated"
+retirement_date = 2026-12-11
+replacement = "gpt-5.6-terra"
+snapshots = ["gpt-5-mini-2025-08-07"]
+efforts = []  # la page officielle mentionne le raisonnement sans lister les niveaux
+observed_efforts = ["low"]  # campagnes reelles du 10/11/2026
+apis = ["chat_completions", "responses", "batch"]
+structured_outputs = true
+context_window = 400000
+max_output_tokens = 128000
+price_input = 0.25
+price_cached_input = 0.025
+price_output = 2.0
+verified_on = 2026-11-10
+unverified = ["efforts"]
+sources = [
+    "https://developers.openai.com/api/docs/models/gpt-5-mini",
+    "https://developers.openai.com/api/docs/deprecations",
+]
+notes = "Deprecie le 11/06/2026 ; retrait de l'API le 11/12/2026 ; remplacement indique : gpt-5.6-terra."
+
+[[models]]
+id = "gpt-5.6-terra"
+provider = "openai"
+status = "available"
+snapshots = []
+efforts = ["none", "low", "medium", "high", "xhigh", "max"]
+default_effort = "medium"
+observed_efforts = ["low"]
+apis = ["chat_completions", "responses", "batch"]
+structured_outputs = true
+context_window = 1050000
+max_output_tokens = 128000
+price_input = 2.0
+price_cached_input = 0.2
+price_output = 12.0
+verified_on = 2026-11-10
+unverified = []
+sources = [
+    "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+    "https://developers.openai.com/api/docs/deprecations",
+]
+notes = "Au-dela de 272 000 jetons d'entree, la requete est facturee 2x en entree et 1,5x en sortie."
+
+[[models]]
+id = "gpt-5.6-luna"
+provider = "openai"
+status = "available"
+snapshots = []
+efforts = ["none", "low", "medium", "high", "xhigh", "max"]
+default_effort = "medium"
+observed_efforts = ["low"]
+apis = ["chat_completions", "responses", "batch"]
+structured_outputs = true
+context_window = 1050000
+max_output_tokens = 128000
+price_input = 0.2
+price_cached_input = 0.02
+price_output = 1.2
+verified_on = 2026-11-10
+unverified = []
+sources = [
+    "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+    "https://developers.openai.com/api/docs/deprecations",
+]
+notes = ""

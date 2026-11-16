@@ -1,0 +1,40 @@
+# Configuration Streamlit du prototype (local uniquement).
+
+[client]
+# Masque le bouton « Deploy » : il entrait dans l'ordre de tabulation (revue clavier, phase 4)
+# et ne correspond a aucun usage du prototype.
+toolbarMode = "minimal"
+# Une erreur inattendue n'affiche que son type, jamais la trace ni le message complet.
+showErrorDetails = "type"
+# D-76 : la navigation est celle de l'application (barre laterale personnalisee).
+showSidebarNavigation = false
+
+[browser]
+gatherUsageStats = false
+
+# D-76 : charte graphique de la refonte (fond blanc, cartes bordees, accent vert doux).
+# Polices systeme uniquement : aucun chargement de police externe.
+[theme]
+base = "light"
+primaryColor = "#19735B"
+backgroundColor = "#FDFEFD"
+secondaryBackgroundColor = "#F4F7F5"
+textColor = "#192923"
+linkColor = "#176B53"
+linkUnderline = false
+borderColor = "#E5E7EB"
+showWidgetBorder = true
+showSidebarBorder = true
+greenColor = "#238C6E"
+font = "'Segoe UI', Inter, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif"
+headingFont = "'Segoe UI', Inter, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif"
+headingFontWeights = [700, 650, 600, 600, 600, 600]
+headingFontSizes = ["1.9rem", "1.45rem", "1.2rem", "1.05rem", "1rem", "0.95rem"]
+baseFontSize = 15
+baseRadius = "12px"
+buttonRadius = "10px"
+
+[theme.sidebar]
+backgroundColor = "#F4F7F5"
+secondaryBackgroundColor = "#E7F0EB"
+borderColor = "#DCE6E0"

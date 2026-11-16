@@ -1,0 +1,62 @@
+# Politique des sites (Business Researcher, R5 D-72). Aucun secret.
+# Sites EXCLUS de toute recherche : leurs conditions restreignent l'acces automatise ou
+# exigent une autorisation que ce projet n'a pas. Ils sont exclus des requetes envoyees a
+# Tavily et Exa (exclude_domains) ET filtres a la reception : passer par un service tiers
+# serait un contournement. Liste prudente, a revoir ; un sous-domaine est couvert.
+# Verification du 10/11/2026 : Reddit d'apres ses pages officielles (centre d'aide, lues
+# par les resultats de recherche ; lecture directe refusee, HTTP 403) ; les autres d'apres
+# des sources secondaires concordantes, a confirmer sur leurs conditions actuelles.
+
+version = "2026-11-11"
+
+[[blocked]]
+domains = ["reddit.com", "redd.it", "redditmedia.com"]
+label = "Reddit"
+reason = "accès aux données soumis à l'approbation explicite de Reddit (écrite pour un usage commercial), non obtenue ; extraction interdite"
+source = "https://support.reddithelp.com/hc/en-us/articles/42728983564564-Responsible-Builder-Policy"
+official = true
+
+[[blocked]]
+domains = ["trustpilot.com", "trustpilot.fr"]
+label = "Trustpilot"
+reason = "conditions restreignant la collecte automatisée des avis (API soumise à ses propres conditions)"
+official = false
+
+[[blocked]]
+domains = ["yelp.com", "yelp.fr", "yelp.ca"]
+label = "Yelp"
+reason = "conditions interdisant la collecte automatisée des avis sans autorisation expresse"
+official = false
+
+[[blocked]]
+domains = ["tripadvisor.com", "tripadvisor.fr", "tripadvisor.ca", "tripadvisor.co.uk"]
+label = "Tripadvisor"
+reason = "conditions restreignant l'extraction automatisée à des fins commerciales"
+official = false
+
+[[blocked]]
+domains = ["amazon.com", "amazon.fr", "amazon.ca", "amazon.co.uk", "amazon.de", "amazon.es"]
+label = "Amazon (avis)"
+reason = "conditions d'utilisation excluant l'exploration automatisée des données (data mining)"
+official = false
+
+# Ajout apres la recette reelle du 11/11/2026 : Tavily a renvoye des extraits d'Instagram et
+# de LinkedIn. Meme principe que pour Reddit : pas de contenu de reseaux sociaux par un tiers.
+# Conditions non relues une a une (exclusion par prudence).
+[[blocked]]
+domains = ["instagram.com", "facebook.com", "fb.com", "threads.net"]
+label = "Instagram et Facebook"
+reason = "conditions de Meta restreignant la collecte automatisée des contenus"
+official = false
+
+[[blocked]]
+domains = ["linkedin.com"]
+label = "LinkedIn"
+reason = "conditions restreignant la collecte automatisée des contenus"
+official = false
+
+[[blocked]]
+domains = ["tiktok.com", "x.com", "twitter.com"]
+label = "TikTok et X"
+reason = "conditions restreignant la collecte automatisée des contenus"
+official = false

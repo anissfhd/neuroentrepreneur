@@ -1,0 +1,30 @@
+services:
+  coach:
+    image: neuroentrepreneur-demo
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    env_file: demo.env
+    environment:
+      NEUROCOACH_LLM_PROVIDER: openai
+      NEUROCOACH_RESEARCH_SIMULATION: "0"
+      NEUROCOACH_DATA_DIR: /app/data
+      NEUROCOACH_SPENDING_LEDGER: /app/data/api-usage.jsonl
+    ports:
+      - "127.0.0.1:8501:8501"
+    volumes:
+      - coach_data:/app/data
+    restart: unless-stopped
+  deadlines:
+    image: neuroentrepreneur-demo
+    depends_on:
+      - coach
+    environment:
+      NEUROCOACH_DATA_DIR: /app/data
+    command: ["python", "-m", "neurocoach.deadline_worker"]
+    volumes:
+      - coach_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  coach_data:

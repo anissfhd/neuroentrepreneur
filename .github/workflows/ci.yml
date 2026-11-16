@@ -1,0 +1,53 @@
+# Integration continue : lint, tests avec couverture et analyse des secrets.
+# Faux fournisseur LLM uniquement : aucune cle, aucun appel reseau, aucun cout.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualite:
+    name: Python 3.13 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      NEUROCOACH_LLM_PROVIDER: fake
+      NEUROCOACH_RUN_REAL_LLM: "0"
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: Installation (versions figees)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+          python -m pip install -e . --no-deps
+
+      - name: Lint et formatage
+        run: python scripts/dev.py lint
+
+      - name: Tests et couverture (seuil 90 %)
+        run: python scripts/dev.py cov
+
+      - name: Analyse des secrets
+        run: python scripts/dev.py check-secrets

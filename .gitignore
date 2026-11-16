@@ -1,0 +1,46 @@
+# Secrets et configuration locale
+.env
+.env.*
+!.env.example
+
+# Donnees locales (bases SQLite metier et checkpoints)
+data/
+data-recette*/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+
+# Environnements et caches Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Depots amont eventuellement clones pour audit (jamais publies)
+research/upstream/
+
+# Editeurs, outils locaux et systeme
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.streamlit/secrets.toml
+
+# Documents de travail internes, non publies sans decision explicite du porteur du projet :
+# dossier de specification initial, consignes de Claude Code, audits des depots sources.
+CLAUDE.md
+DOSSIER_COMPLET.pdf
+docs/0[0-7]_*.md
+docs/research/
+/deploy/demo.env
